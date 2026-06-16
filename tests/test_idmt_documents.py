@@ -67,6 +67,8 @@ def test_theme_document_shape() -> None:
         group_key="GROUP-23618",
         summary="CP 2027 Guided Health Plans : Appeal Decision",
         description="This theme describes the processed appeal",
+        value_stream_id="VSR00074590",
+        value_stream_name="Resolve Appeal",
         created_date="2025-07-09T12:55:24-05:00",
         modified_date="2025-11-10T11:49:11-06:00",
         created_by="U447949",
@@ -83,7 +85,7 @@ def test_theme_document_shape() -> None:
     props = doc["properties"]
     assert props["summary"] == "CP 2027 Guided Health Plans : Appeal Decision"  # ISSUE title
     assert props["description"].startswith("This theme")
-    assert props["valueStream"] == {"valueStreamId": "", "valueStreamName": ""}  # from the field
+    assert props["valueStream"] == "Resolve Appeal {VSR00074590}"  # raw "<name> {id}" string
     assert props["creationDate"].startswith("2025-07-09")  # source created
 
 

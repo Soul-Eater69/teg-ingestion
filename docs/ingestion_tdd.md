@@ -214,8 +214,9 @@ Stream.
 | `parentRef` | the parent IDMT ticket's `sourceId` |
 | `properties` | nested object (below) |
 
-**`properties`:** `summary` (Theme title), `description`, `valueStream` (Value Stream linked to the
-Theme), `creationDate`, `insightsTime`.
+**`properties`:** `summary` (Theme title), `description`, `valueStream` (the linked Value Stream as the
+single `<name> {id}` string, e.g. `Resolve Appeal {VSR00074590}` — not a nested object),
+`creationDate`, `insightsTime`.
 
 > Themes are **separate documents**, found via `parentRef` — not embedded as a `themes[]` array on the
 > IDMT document.
