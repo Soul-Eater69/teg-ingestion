@@ -227,8 +227,10 @@ Holds the historical Engagement-Request documents for retrieval.
 
 | field | description |
 |---|---|
+| `id` | Azure Search document **key** — the deterministic uuid (same id as the Cosmos ER doc) |
 | `key` | Jira issue key, e.g. `IDMT-####` (mutable business key) |
 | `sourceId` | stable Jira internal id (stable across IDMT-key changes) |
+| `source` | origin system — `JIRA` |
 | `entityType` | `ENGAGEMENTREQUEST` |
 | `status` | Jira status (Cancelled / To Do / In Progress …) |
 | `searchText` | `businessSummary + businessProblem + businessCapability + keyTerms + stakeholders + systemsAndProducts` |

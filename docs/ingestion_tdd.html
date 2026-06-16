@@ -450,12 +450,20 @@ IDMT document.</p>
 </thead>
 <tbody>
 <tr>
+<td><code>id</code></td>
+<td>Azure Search document <strong>key</strong> — the deterministic uuid (same id as the Cosmos ER doc)</td>
+</tr>
+<tr>
 <td><code>key</code></td>
 <td>Jira issue key, e.g. <code>IDMT-####</code> (mutable business key)</td>
 </tr>
 <tr>
 <td><code>sourceId</code></td>
 <td>stable Jira internal id (stable across IDMT-key changes)</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>origin system — <code>JIRA</code></td>
 </tr>
 <tr>
 <td><code>entityType</code></td>
