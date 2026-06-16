@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from teg.domain.condensed import CondensedTicket, GenerationSignals, SummaryFields
+from teg.domain.condensed import CondensedTicket, SummaryFields
 from teg.ingestion.documents.historical_index_documents import (
     build_historical_content,
     build_historical_index_document,
@@ -22,7 +22,6 @@ def _condensed() -> CondensedTicket:
             business_capability="Faster resolution",
             key_terms=["appeals"],
         ),
-        generation_signals=GenerationSignals(),
         description="d",
         raw_text="r",
     )

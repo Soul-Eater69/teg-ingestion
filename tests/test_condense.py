@@ -9,7 +9,7 @@ from teg.condense.condenser import condense
 from teg.condense.config import CondenseConfig
 from teg.condense.ticket_context import resolve_from_ticket
 from teg.contracts.condense_io import CondenseRequest
-from teg.domain.condensed import GenerationSignals, SummaryFields
+from teg.domain.condensed import SummaryFields
 from teg.integrations.jira import JiraAttachment, JiraTicket
 from teg.services.condense_service import CondenseService
 
@@ -41,16 +41,11 @@ _LLM_JSON = {
         "stakeholders": ["Claims Ops"],
         "systemsAndProducts": ["ClaimsHub"],
     },
-    "generationSignals": {
-        "marketSegments": ["Medicare members"],
-        "dependencies": [],
-        # other 16 keys intentionally absent -> must become empty lists
-    },
 }
 
 
 class FakeLLM:
-    """Returns the canned slice for the requested schema (summary | signals call)."""
+    """Returns the canned slice for the requested schema (the summary call)."""
 
     def __init__(self, payload: dict | None = None) -> None:
         self._payload = payload if payload is not None else _LLM_JSON
@@ -58,8 +53,6 @@ class FakeLLM:
     async def complete(self, *, system: str, user: str, schema):
         if schema is SummaryFields:
             return schema.model_validate(self._payload["summaryFields"])
-        if schema is GenerationSignals:
-            return schema.model_validate(self._payload["generationSignals"])
         return schema.model_validate(self._payload)
 
 
@@ -181,17 +174,16 @@ def test_select_attachments_skips_oversized_fallback() -> None:
 
 # ---- condenser -----------------------------------------------------------
 
-async def test_condense_maps_fields_and_keeps_absent_signals_empty() -> None:
+async def test_condense_maps_summary_fields() -> None:
     ticket = _ticket([JiraAttachment("idea_card.pptx")])
     ctx = await resolve_from_ticket(ticket, FakeJira(ticket), FakeExtractor())
     condensed = await condense(ctx, FakeLLM())
 
     assert condensed.summary_fields.generated_summary == "A proposed change to claims intake."
     assert condensed.summary_fields.key_terms == ["claims", "intake"]
-    assert condensed.generation_signals.market_segments == ["Medicare members"]
-    # absent categories never invented:
-    assert condensed.generation_signals.notes == []
-    assert condensed.generation_signals.reporting_signals == []
+    # raw text + description are carried through for storage:
+    assert condensed.description == "Automate manual claims intake."
+    assert condensed.raw_text
 
 
 # ---- service (Contract A) ------------------------------------------------
@@ -205,7 +197,7 @@ async def test_service_condenses_from_ticket_id_and_serializes_camel_case() -> N
     assert data["condensed"]["ticketId"] == "IDMT-1"
     assert data["condensed"]["primarySource"] == "idea_card"
     assert data["condensed"]["summaryFields"]["businessProblem"] == "Manual intake is slow."
-    assert data["condensed"]["generationSignals"]["marketSegments"] == ["Medicare members"]
+    assert "generationSignals" not in data["condensed"]
     assert data["model"] == "test-model"
 
 

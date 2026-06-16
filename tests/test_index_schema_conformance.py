@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from teg.domain.condensed import CondensedTicket, GenerationSignals, SummaryFields
+from teg.domain.condensed import CondensedTicket, SummaryFields
 from teg.ingestion.documents.historical_index_documents import build_historical_index_document
 from teg.ingestion.documents.value_stream_documents import build_index_document
 from teg.ingestion.extraction.jira_records import ExtractedEngagementRequest
@@ -43,7 +43,7 @@ def _historical_doc() -> dict:
     condensed = CondensedTicket(
         ticket_id="IDMT-1", ticket_title="t", primary_source="idea_card",
         summary_fields=SummaryFields(generated_summary="s", business_problem="p", business_capability="c"),
-        generation_signals=GenerationSignals(), description="d", raw_text="r",
+        description="d", raw_text="r",
     )
     gt = [ThemeGroundTruth(theme_stable_id="T1", group_key="GROUP-1",
                            value_stream_id="VSR1", value_stream_name="Adjudicate Claim")]

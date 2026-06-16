@@ -68,18 +68,23 @@ src/teg/
     ground_truth/     ground-truth records
     catalogues/       Value Stream catalogue loader/models
     upload/           AI-search index uploader
-  condense/         attachment ranking, raw-text assembly, condense LLM pass
+  condense/         attachment ranking, raw-text assembly, the single condense LLM pass
   integrations/     low-level clients: jira, files (pdf/pptx/docx), embeddings, search, cosmos, llm
-  services/         condense service wrapper        ← shared dep
-  value_stream/     retrieval-text helper           ← shared dep (one helper used by the index builder)
-  contracts/ domain/ config/ prompts/  shared models, settings, prompt templates
+  services/         condense service wrapper only    ← shared dep
+  value_stream/     retrieval-text helper only       ← shared dep (one helper used by the index builder)
+  contracts/ domain/ config/ prompts/  shared models, settings, the condense prompt
 tests/              55 ingestion tests (all passing)
-data/               index schema + value-stream catalogue fixtures
+data/               index schema fixture
 docs/               ingestion_tdd (md + pdf) + flowcharts
 ```
 
-> `services/` and `value_stream/` are included because the pipeline imports a couple of helpers from
-> them (the condense service wrapper and a retrieval-text builder). They are not the generation module.
+> This is the **ingestion subset only** — exactly the modules the pipeline imports. The generation code
+> (theme / value-stream / stage selection, their prompts and judges) is **not** here. `services/` keeps
+> only the condense wrapper and `value_stream/` only the retrieval-text helper the index builder needs.
+>
+> **Condense is a single LLM pass** (`SummaryFields` — generated summary, business problem/capability,
+> key terms, stakeholders, systems & products), matching `docs/ingestion_tdd.md` §4.3-4.4. The old
+> second "generation signals" pass is removed; ingestion never stored it.
 
 ## What is implemented (and what is not)
 

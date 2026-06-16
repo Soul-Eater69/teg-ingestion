@@ -50,7 +50,7 @@ class CondenseService:
         return CondenseResponse(
             condensed=condensed,
             model=self._model_name,
-            prompt_version=load_prompt("condense/summary").version,  # summary+signals share a version
+            prompt_version=load_prompt("condense/summary").version,
             extraction_seconds=round(t1 - t0, 3),
             summarization_seconds=round(t2 - t1, 3),
         )

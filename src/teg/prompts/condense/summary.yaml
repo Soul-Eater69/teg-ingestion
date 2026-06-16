@@ -1,6 +1,6 @@
-# Condense - SUMMARY pass. Produces summaryFields: the faithful,
-# retrieval-ready digest every downstream step reads. Runs in parallel with the
-# signals pass. Output shape enforced by the SummaryFields schema.
+# Condense - the single SUMMARY pass. Produces summaryFields: the faithful,
+# retrieval-ready digest every downstream step reads. Output shape enforced by
+# the SummaryFields schema.
 # Template vars: {ticket_id}, {consolidated_text}.
 
 version: "2026-06-07"

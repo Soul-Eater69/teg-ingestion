@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from teg.domain.condensed import CondensedTicket, GenerationSignals, SummaryFields
+from teg.domain.condensed import CondensedTicket, SummaryFields
 from teg.ingestion.documents.idmt_documents import build_idmt_document, build_theme_document
 from teg.ingestion.extraction.jira_records import ExtractedEngagementRequest, ExtractedTheme
 from teg.ingestion.ground_truth.theme_ground_truth import ThemeGroundTruth
@@ -21,7 +21,6 @@ def _condensed() -> CondensedTicket:
             stakeholders=["Claims Ops"],
             systems_and_products=["Salesforce"],
         ),
-        generation_signals=GenerationSignals(),
         description="Gate 0 link and idea card",
         raw_text="full consolidated text",
     )
