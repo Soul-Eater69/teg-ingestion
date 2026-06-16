@@ -1,10 +1,10 @@
 """IDMT ingestion pipeline: live Jira -> Cosmos IDMT/ER + Theme + historical index docs.
 
-Per ticket: fetch the ER + its linked themes, condense the idea card, resolve each
-theme's Value Stream against the catalogue, then build the ER doc (with themes[] GT), one
-Theme doc per linked theme, and the historical search-index doc (embedded when an embeddings
-client is provided). Themes whose VS does not resolve to an approved value stream are dropped
-from the GT.
+Per ticket: fetch the ER + its linked themes, condense the source material, read each theme's
+Value Stream straight from its Business Value Stream field, then build the ER doc, one Theme doc
+per linked theme (Themes are separate docs via parentRef - not embedded on the ER), and the
+historical search-index doc (embedded when an embeddings client is provided). The Theme Value
+Streams are carried into the historical index doc as retrieval labels.
 """
 
 from __future__ import annotations
@@ -58,7 +58,7 @@ class IdmtIngestion:
 
         # The Value Stream is read straight from each theme's Business Value Stream field
         # (no catalogue match); themes without one were already dropped by the source. Each
-        # kept theme becomes a themes[] GT entry and a Theme doc (no orphans).
+        # kept theme becomes a Theme doc; its VS is also carried into the historical index doc.
         theme_gt: list[ThemeGroundTruth] = []
         theme_docs: list[dict] = []
         for theme in er.themes:
@@ -72,7 +72,7 @@ class IdmtIngestion:
             )
             theme_docs.append(build_theme_document(theme, parent_er_id=er.stable_id))
 
-        idmt_doc = build_idmt_document(er=er, condensed=condensed, theme_gt=theme_gt)
+        idmt_doc = build_idmt_document(er=er, condensed=condensed)
 
         content_vector = None
         if self._embeddings is not None:

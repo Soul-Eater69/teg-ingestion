@@ -188,11 +188,12 @@ Stream.
 | `id` | document uuid |
 | `key` | Jira issue key, e.g. `IDMT-####` (mutable business key) |
 | `sourceId` | stable Jira internal id (e.g. 3364549); stable across IDMT-key changes |
-| `source` | origin system, e.g. Jira |
-| `entityType` | `ENGAGEMENTREQUEST` |
-| `createdAt` / `createdBy` | Cosmos creation date / actor |
-| `lastModifiedAt` / `lastModifiedBy` | Cosmos modification date / actor |
-| `parentRef` | `sourceId` (an ER has no parent) |
+| `source` | origin system — **`JIRA`** (uppercase) |
+| `domain` | **`WORKITEM`** (uppercase) |
+| `entityType` | **`ENGAGEMENTREQUEST`** (uppercase) |
+| `createdAt` / `createdBy` | Cosmos creation date / actor (`createdBy` = **`TEG-INGESTION`**) |
+| `lastModifiedAt` / `lastModifiedBy` | Cosmos modification date / actor (`lastModifiedBy` = **`TEG-INGESTION`**) |
+| `parentRef` | the ER's own `sourceId` (an ER has no parent) |
 | `properties` | nested object — extracted business context (below) |
 
 **`properties`:** `description`, `summary`, `creationDate`, `insightsTime`, `businessSummary`,
@@ -205,10 +206,11 @@ Stream.
 | `id` | document uuid |
 | `key` | Jira issue key (GROUP-####) |
 | `sourceId` | stable Jira internal id |
-| `source` | origin system, e.g. Jira |
-| `entityType` | `THEME` |
-| `createdAt` / `createdBy` | Cosmos creation date / actor |
-| `lastModifiedAt` / `lastModifiedBy` | Cosmos modification date / actor |
+| `source` | origin system — **`JIRA`** (uppercase) |
+| `domain` | **`WORKITEM`** (uppercase) |
+| `entityType` | **`THEME`** (uppercase) |
+| `createdAt` / `createdBy` | Cosmos creation date / actor (`createdBy` = **`TEG-INGESTION`**) |
+| `lastModifiedAt` / `lastModifiedBy` | Cosmos modification date / actor (`lastModifiedBy` = **`TEG-INGESTION`**) |
 | `parentRef` | the parent IDMT ticket's `sourceId` |
 | `properties` | nested object (below) |
 

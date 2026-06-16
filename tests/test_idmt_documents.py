@@ -5,7 +5,6 @@ from __future__ import annotations
 from teg.domain.condensed import CondensedTicket, SummaryFields
 from teg.ingestion.documents.idmt_documents import build_idmt_document, build_theme_document
 from teg.ingestion.extraction.jira_records import ExtractedEngagementRequest, ExtractedTheme
-from teg.ingestion.ground_truth.theme_ground_truth import ThemeGroundTruth
 
 
 def _condensed() -> CondensedTicket:
@@ -39,36 +38,27 @@ def _er() -> ExtractedEngagementRequest:
 
 
 def test_idmt_document_shape() -> None:
-    gt = [
-        ThemeGroundTruth(
-            theme_stable_id="3966046",
-            group_key="GROUP-23618",
-            value_stream_id="VSR00074590",
-            value_stream_name="Resolve Appeal",
-        )
-    ]
-    doc = build_idmt_document(er=_er(), condensed=_condensed(), theme_gt=gt)
+    doc = build_idmt_document(er=_er(), condensed=_condensed())
     assert len(doc["id"]) == 36 and doc["id"].count("-") == 4  # uuid doc id
     assert doc["key"] == "IDMT-19761"  # business key
     assert doc["sourceId"] == "3364549"  # stable Jira id
     # deterministic: same source id -> same uuid (idempotent upsert)
-    assert doc["id"] == build_idmt_document(er=_er(), condensed=_condensed(), theme_gt=gt)["id"]
-    assert doc["entityType"] == "EngagementRequest"  # PascalCase
-    assert doc["createdAt"] and doc["createdBy"] == "teg-ingestion"  # Cosmos lifecycle, level 1
-    assert doc["lastModifiedAt"] and doc["parentRef"] is None  # ER is a root
+    assert doc["id"] == build_idmt_document(er=_er(), condensed=_condensed())["id"]
+    assert doc["source"] == "JIRA"  # all caps
+    assert doc["domain"] == "WORKITEM"
+    assert doc["entityType"] == "ENGAGEMENTREQUEST"  # all caps
+    assert doc["createdAt"] and doc["createdBy"] == "TEG-INGESTION"  # Cosmos lifecycle, level 1
+    assert doc["lastModifiedAt"] and doc["lastModifiedBy"] == "TEG-INGESTION"
+    assert doc["parentRef"] == "3364549"  # an ER has no parent -> its own sourceId
     props = doc["properties"]
     assert props["summary"] == "CP 2026 Women's and Family Health"  # the ticket TITLE
     assert props["businessSummary"] == "Automate appeals handling"  # LLM summary
     assert props["creationDate"].startswith("2024-05-31")  # source created
     assert props["insightsTime"].startswith("2025-12-31")  # source last updated
     assert "generationSignals" not in props  # signals no longer stored
+    assert "themes" not in props  # Themes are separate docs (via parentRef), not embedded here
     assert props["businessProblem"] == "Manual appeals are slow"
     assert props["keyTerms"] == ["appeals", "Medicare"]
-    theme = props["themes"][0]
-    assert theme["key"] == "GROUP-23618"  # business key
-    assert theme["sourceId"] == "3966046"  # -> Theme doc id
-    assert theme["valueStreamId"] == "VSR00074590"
-    assert theme["valueStreamName"] == "Resolve Appeal"
 
 
 def test_theme_document_shape() -> None:
@@ -85,9 +75,11 @@ def test_theme_document_shape() -> None:
     assert len(doc["id"]) == 36  # uuid doc id
     assert doc["key"] == "GROUP-23618"  # business key
     assert doc["sourceId"] == "3966046"  # stable Jira id
-    assert doc["entityType"] == "Theme"
+    assert doc["source"] == "JIRA"  # all caps
+    assert doc["domain"] == "WORKITEM"
+    assert doc["entityType"] == "THEME"  # all caps
     assert doc["parentRef"] == "3364549"  # parent ER's sourceId
-    assert doc["createdAt"] and doc["createdBy"] == "teg-ingestion"  # Cosmos lifecycle
+    assert doc["createdAt"] and doc["createdBy"] == "TEG-INGESTION"  # Cosmos lifecycle
     props = doc["properties"]
     assert props["summary"] == "CP 2027 Guided Health Plans : Appeal Decision"  # ISSUE title
     assert props["description"].startswith("This theme")

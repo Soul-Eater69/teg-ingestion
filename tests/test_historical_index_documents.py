@@ -57,7 +57,8 @@ def test_historical_index_document_shape() -> None:
     assert len(doc["id"]) == 36  # uuid doc id
     assert doc["key"] == "IDMT-19761"  # leave-one-out / match key
     assert doc["sourceId"] == "3364549"  # stable Jira id
-    assert doc["entityType"] == "EngagementRequest"
+    assert doc["entityType"] == "ENGAGEMENTREQUEST"
+    assert doc["source"] == "JIRA"
     assert doc["content_vector"] == [0.1, 0.2]
     assert doc["searchText"]  # was 'content'
     # Retrieval-only doc: no properties block at all - VS labels + content come from Cosmos by key.

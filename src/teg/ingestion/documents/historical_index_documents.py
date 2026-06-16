@@ -15,7 +15,7 @@ from teg.ingestion.documents.idmt_documents import ER_ENTITY_TYPE, doc_id
 from teg.ingestion.extraction.jira_records import ExtractedEngagementRequest
 from teg.ingestion.ground_truth.theme_ground_truth import ThemeGroundTruth
 
-SOURCE = "Jira"
+SOURCE = "JIRA"
 ENTITY_TYPE = ER_ENTITY_TYPE
 
 
