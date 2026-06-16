@@ -10,7 +10,7 @@ Pipeline:
     L3  status NOT IN {Cancelled, Blocked, New Request}
     L4  has >=1 inwardIssuesMetaData entry ending in '__implemented by'
     L5  the linked key resolves to a JIRA node with issueType='Theme'
-        AND its status is not 'To Do' or 'Cancelled'
+        AND its status is not 'Cancelled'
     L6  that Theme's businessValueStreams matches \\{VSR\\d+\\}\\s*$
 
 Connection settings are read from environment variables (.env via python-dotenv
@@ -49,7 +49,7 @@ IDMT_KEY_PREFIX = "IDMT-"
 SOURCE_ISSUE_TYPE = "Engagement Request"
 THEME_ISSUE_TYPE = "Theme"
 EXCLUDE_STATUSES = ["Blocked", "Cancelled", "New Request"]   # ER (L3) status exclusion
-THEME_EXCLUDE_STATUSES = ["To Do", "Cancelled"]              # Theme (L5) status exclusion
+THEME_EXCLUDE_STATUSES = ["Cancelled"]                       # Theme (L5) status exclusion
 INWARD_LINK_TYPE = "implemented by"
 VSR_REGEX = r".*\{VSR\d+\}\s*$"
 

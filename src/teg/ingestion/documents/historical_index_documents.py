@@ -10,14 +10,22 @@ match/leave-one-out key), sourceId=stable Jira id. status = the ticket's Jira st
 
 from __future__ import annotations
 
-from teg.domain.condensed import CondensedTicket
+from teg.domain.condensed import CondensedTicket, SummaryFields
 from teg.ingestion.documents.idmt_documents import ER_ENTITY_TYPE, doc_id
 from teg.ingestion.extraction.jira_records import ExtractedEngagementRequest
 from teg.ingestion.ground_truth.theme_ground_truth import ThemeGroundTruth
-from teg.value_stream.retrieval import build_retrieval_text
 
 SOURCE = "Jira"
 ENTITY_TYPE = ER_ENTITY_TYPE
+
+
+def build_retrieval_text(summary: SummaryFields) -> str:
+    """Curated retrieval text from the summary fields. The stored historical doc's embedded
+    content and the live prediction query are built the same way, so a stored ticket and a
+    live query land in the same vector space."""
+    parts = [summary.generated_summary, summary.business_problem, summary.business_capability]
+    parts += summary.key_terms + summary.stakeholders + summary.systems_and_products
+    return "\n".join(part for part in parts if part and part.strip())
 
 
 def build_historical_content(condensed: CondensedTicket) -> str:

@@ -6,6 +6,7 @@ from teg.domain.condensed import CondensedTicket, SummaryFields
 from teg.ingestion.documents.historical_index_documents import (
     build_historical_content,
     build_historical_index_document,
+    build_retrieval_text,
 )
 from teg.ingestion.extraction.jira_records import ExtractedEngagementRequest
 from teg.ingestion.ground_truth.theme_ground_truth import ThemeGroundTruth
@@ -44,8 +45,6 @@ def _gt() -> list[ThemeGroundTruth]:
 
 def test_content_matches_query_builder() -> None:
     # The historical content must be built the same way as the prediction query.
-    from teg.value_stream.retrieval import build_retrieval_text
-
     content = build_historical_content(_condensed())
     assert content == build_retrieval_text(_condensed().summary_fields)
     assert "Automate appeals handling" in content and "Manual appeals are slow" in content
