@@ -9,14 +9,20 @@ Design reference: **`docs/ingestion_tdd.md`** (with flowcharts).
 
 ## Install & test
 
+This is a **uv package** (`pyproject.toml` + `uv.lock`). Test tooling is in the `dev`
+dependency-group (installed by default); the runtime features are optional extras.
+
 ```bash
-# install the module + its dependencies
-pip install -e ".[extract,dev]"          # extract = pdf/pptx/docx parsing; dev = test deps
-#   add  ,azure  for live Cosmos / AI-Search persistence
+# create the env + install the module, the dev group, and the feature extras
+uv sync --extra extract --extra neo4j     # extract = pdf/pptx/docx · neo4j = Stage 0
+#   add  --extra azure  for live Cosmos / AI-Search persistence
 
 # run the tests (no live Jira / Azure / LLM calls — clients are faked)
-pytest                                    # 55 tests, all passing
+uv run pytest                             # 55 tests, all passing
 ```
+
+> Prefer pip? `pip install -e ".[extract,neo4j]"` then `pip install pytest pytest-asyncio` works too —
+> the `dev` group is uv-native, so under pip install the test deps explicitly.
 
 Entry point: `teg.ingestion.pipeline.idmt_ingestion.IdmtIngestion.ingest(ticket_id)` — inject a
 `JiraIngestionSource`, a `CondenseService`, and (optionally) an `EmbeddingsClient`. Configuration is via
@@ -35,7 +41,7 @@ index documents to **local JSON** — **nothing is written to Cosmos or the sear
 **Stage 0 — fetch the valid tickets** (Neo4j; set `NEO4J_URI / USER / PASSWORD`):
 
 ```bash
-python scripts/fetch_idmt_vs_valid_tickets.py --output cohort.txt
+uv run python scripts/fetch_idmt_vs_valid_tickets.py --output cohort.txt
 # writes the usable IDMT ticket keys (one per line) to cohort.txt
 ```
 
@@ -44,10 +50,10 @@ JSON, no upload). Configure the `TEG_*` settings (Jira + LLM gateway) first:
 
 ```bash
 # one ticket
-python scripts/generate_docs_local.py IDMT-19761 --out out/local_docs
+uv run python scripts/generate_docs_local.py IDMT-19761 --out out/local_docs
 
 # the whole cohort from Stage 0
-python scripts/generate_docs_local.py --from-file cohort.txt --out out/local_docs
+uv run python scripts/generate_docs_local.py --from-file cohort.txt --out out/local_docs
 ```
 
 For each ticket it writes under `out/local_docs/<ticket-id>/`:
