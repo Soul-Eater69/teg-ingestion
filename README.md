@@ -26,6 +26,9 @@ Entry point: `teg.ingestion.pipeline.idmt_ingestion.IdmtIngestion.ingest(ticket_
 
 ## Run it end to end — locally, no persistence
 
+First set up config: **copy `.env.example` → `.env`** and fill in the Jira + LLM-gateway values (and
+`NEO4J_*` for Stage 0). Settings load from `.env` automatically (`TEG_` prefix).
+
 Two scripts under `scripts/` let you (1) fetch the valid-ticket cohort, then (2) generate the Cosmos +
 index documents to **local JSON** — **nothing is written to Cosmos or the search index.**
 
