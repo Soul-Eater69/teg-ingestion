@@ -24,6 +24,36 @@ Entry point: `teg.ingestion.pipeline.idmt_ingestion.IdmtIngestion.ingest(ticket_
 
 **Models used:** condense = `gpt-5-mini-idp`; embeddings = `text-embedding-3-small-idp` (1536-d).
 
+## Run it end to end — locally, no persistence
+
+Two scripts under `scripts/` let you (1) fetch the valid-ticket cohort, then (2) generate the Cosmos +
+index documents to **local JSON** — **nothing is written to Cosmos or the search index.**
+
+**Stage 0 — fetch the valid tickets** (Neo4j; set `NEO4J_URI / USER / PASSWORD`):
+
+```bash
+python scripts/fetch_idmt_vs_valid_tickets.py --output cohort.txt
+# writes the usable IDMT ticket keys (one per line) to cohort.txt
+```
+
+**Stage 1 — generate the docs locally** (calls live Jira + the LLM gateway to fetch + condense; writes
+JSON, no upload). Configure the `TEG_*` settings (Jira + LLM gateway) first:
+
+```bash
+# one ticket
+python scripts/generate_docs_local.py IDMT-19761 --out out/local_docs
+
+# the whole cohort from Stage 0
+python scripts/generate_docs_local.py --from-file cohort.txt --out out/local_docs
+```
+
+For each ticket it writes under `out/local_docs/<ticket-id>/`:
+- `idmt.json` — the Cosmos Engagement-Request document
+- `theme_<KEY>.json` — one Cosmos Theme document per linked Theme
+- `index.json` — the idp_teg_data search-index document (`content_vector` is null unless `--embed`)
+
+Inspect the JSON to see exactly what *would* be ingested — no actual ingestion happens.
+
 ## Layout
 
 ```

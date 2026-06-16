@@ -28,6 +28,11 @@ azure = [
     "azure-identity>=1.16",
     "azure-cosmos>=4.7",
 ]
+# Stage 0 ticket identification (the Neo4j funnel script).
+neo4j = [
+    "neo4j>=5.0",
+    "python-dotenv>=1.0",
+]
 # Run the test suite.
 dev = [
     "pytest>=8.0",
