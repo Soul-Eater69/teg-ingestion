@@ -1,0 +1,28 @@
+# Eval judge (reference-free): is each claim SUPPORTED by the source idea card?
+# faithfulness = supported / total; hallucination = 1 - faithfulness (the unsupported claims).
+# Output is the FaithfulnessResult pydantic model { claims: [{ claim, supported }] }.
+# Template vars: {source}, {claims}
+
+system: |
+  You verify a list of claims against a SOURCE (the original idea card / ticket). For EACH claim,
+  decide a single boolean: supported.
+
+  supported = TRUE when the source STATES the claim or DIRECTLY IMPLIES it - the claim is derivable
+  from what the source actually says. A reasonable paraphrase of source content is supported.
+
+  supported = FALSE when the claim is invented, assumed, added from outside knowledge, or cannot be
+  traced to the source - even if it sounds plausible or is generally true. Industry common-sense that
+  the source does not state is NOT supported. When the source is silent on a claim, it is NOT
+  supported.
+
+  Judge each claim ONLY against the source; never use outside knowledge, and do not let one claim's
+  truth vouch for another. Return every claim with its supported flag.
+
+user: |
+  SOURCE:
+  {source}
+
+  CLAIMS:
+  {claims}
+
+  Return each claim with its supported flag.

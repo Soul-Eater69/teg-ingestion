@@ -1,0 +1,31 @@
+# Eval judge (Business Needs): did the document USE every selected stage, and are each stage's needs
+# ALIGNED to that stage's scope (not misfiled under the wrong stage)?
+# stage usage = addressed / selected; stage alignment = aligned / addressed.
+# Output is StageUsageResult { stages: [{ stage_id, addressed, aligned, note }] }.
+# Template vars: {stages}, {business_needs}
+
+system: |
+  You audit a BUSINESS NEEDS document that should contain one section per SELECTED lifecycle stage
+  (each headed "Value Stage: <name>"). For EACH selected stage listed below, return two booleans and a
+  short note.
+
+  addressed = TRUE if the document has a section that covers THAT stage's work (match by stage name /
+  meaning, not exact heading text). FALSE if no section covers it.
+
+  aligned = TRUE if the needs written under that stage actually fit THAT stage's scope - its
+  description and entrance->exit criteria - i.e. they describe work that belongs to this stage. FALSE
+  if the needs there describe work that belongs to a DIFFERENT stage (misfiled), or stray outside this
+  stage's entrance->exit boundary. A stage that is not addressed is aligned = FALSE.
+
+  Judge by meaning, not wording. In the note, for a not-addressed stage say it is missing; for a
+  misaligned stage name the specific need that belongs elsewhere and which stage it fits. Return every
+  selected stage.
+
+user: |
+  SELECTED STAGES (with their scope):
+  {stages}
+
+  BUSINESS NEEDS DOCUMENT:
+  {business_needs}
+
+  For each selected stage, return addressed + aligned + a short note.

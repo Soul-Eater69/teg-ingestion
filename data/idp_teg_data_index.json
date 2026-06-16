@@ -1,0 +1,54 @@
+{
+  "name": "idp_teg_data",
+  "fields": [
+    { "name": "id", "type": "Edm.String", "key": true, "searchable": false, "filterable": false, "sortable": false, "facetable": false, "retrievable": true },
+    { "name": "key", "type": "Edm.String", "searchable": false, "filterable": true, "sortable": false, "facetable": false, "retrievable": true },
+    { "name": "sourceId", "type": "Edm.String", "searchable": false, "filterable": false, "sortable": false, "facetable": false, "retrievable": true },
+    { "name": "source", "type": "Edm.String", "searchable": false, "filterable": false, "sortable": false, "facetable": false, "retrievable": true },
+    { "name": "entityType", "type": "Edm.String", "searchable": false, "filterable": true, "sortable": false, "facetable": false, "retrievable": true },
+    { "name": "status", "type": "Edm.String", "searchable": false, "filterable": true, "sortable": false, "facetable": false, "retrievable": true },
+    { "name": "searchText", "type": "Edm.String", "searchable": true, "filterable": false, "sortable": false, "facetable": false, "retrievable": true, "analyzer": "standard.lucene" },
+    {
+      "name": "content_vector",
+      "type": "Collection(Edm.Single)",
+      "searchable": true,
+      "retrievable": false,
+      "dimensions": 1536,
+      "vectorSearchProfile": "teg-vector-profile"
+    },
+    {
+      "name": "properties",
+      "type": "Edm.ComplexType",
+      "fields": [
+        { "name": "valueStreamId", "type": "Edm.String", "searchable": false, "filterable": false, "sortable": false, "facetable": false, "retrievable": true },
+        { "name": "valueStreamName", "type": "Edm.String", "searchable": false, "filterable": false, "sortable": false, "facetable": false, "retrievable": true },
+        {
+          "name": "valueStreams",
+          "type": "Collection(Edm.ComplexType)",
+          "fields": [
+            { "name": "valueStreamId", "type": "Edm.String", "searchable": false, "filterable": false, "sortable": false, "facetable": false, "retrievable": true },
+            { "name": "valueStreamName", "type": "Edm.String", "searchable": false, "filterable": false, "sortable": false, "facetable": false, "retrievable": true }
+          ]
+        }
+      ]
+    }
+  ],
+  "vectorSearch": {
+    "algorithms": [
+      { "name": "teg-hnsw", "kind": "hnsw", "hnswParameters": { "metric": "cosine", "m": 4, "efConstruction": 400, "efSearch": 500 } }
+    ],
+    "profiles": [
+      { "name": "teg-vector-profile", "algorithm": "teg-hnsw" }
+    ]
+  },
+  "semantic": {
+    "configurations": [
+      {
+        "name": "teg-semantic",
+        "prioritizedFields": {
+          "prioritizedContentFields": [ { "fieldName": "searchText" } ]
+        }
+      }
+    ]
+  }
+}
