@@ -47,7 +47,7 @@ if **all** hold:
 | **L2 — is an IDMT Engagement Request, recent** | `key` starts with `IDMT-`, `issueType = "Engagement Request"`, `creationDateEpoch ≥ since` (default **2023-01-01**) |
 | **L3 — not in a dead status** | `status NOT IN {Cancelled, Blocked, New Request}` |
 | **L4 — is implemented by a linked issue** | the IDMT has ≥1 **inbound "implemented by"** link — i.e. a Theme *implements* it. (From the IDMT's side this relationship is inward; the same link is outward "implements" on the Theme. We read it from the IDMT, so it appears inward.) |
-| **L5 — the linked issue is a Theme** | the linked key resolves to a JIRA node with `issueType = "Theme"` |
+| **L5 — the linked issue is a live Theme** | the linked key resolves to a JIRA node with `issueType = "Theme"` **and** its status is not `To Do` or `Cancelled` |
 | **L6 — the Theme carries a Value Stream** | the Theme's `businessValueStreams` matches `…{VSR\d+}` (a valid Value Stream id is present) |
 
 The query returns the **distinct ER keys** that pass all five; that key set is the cohort the batch
@@ -66,8 +66,9 @@ The funnel is one Cypher query — no per-ticket round trips — and each level 
 2. **Pull each candidate's linked keys (L4).** From the IDMT node's inbound-link metadata, keep only the
    links of type *"implemented by"* and extract the linked issue keys. A candidate with no such link is
    dropped here — it has no implementing artifact, so no ground truth.
-3. **Resolve the links to Themes (L5).** Look up each linked key as a graph node and keep it only if its
-   issue type is *Theme*. (An "implemented by" link to a non-Theme issue does not qualify.)
+3. **Resolve the links to live Themes (L5).** Look up each linked key as a graph node and keep it only
+   if its issue type is *Theme* **and** its status is not *To Do* or *Cancelled* — a not-started or
+   dropped Theme is not a real label. (An "implemented by" link to a non-Theme issue does not qualify.)
 4. **Require a Value Stream on the Theme (L6).** Keep the candidate only if at least one of its Themes
    has a `businessValueStreams` value matching `{VSR…}` — i.e. the Theme actually carries a Value
    Stream. A Theme with a blank or malformed Value Stream does not qualify the ticket.
