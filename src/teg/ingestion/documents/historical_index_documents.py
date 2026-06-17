@@ -1,11 +1,13 @@
 """Build the historical IDMT search-index document (idp_teg_data).
 
 Turns an ingested ticket into the retrieval doc that powers the historic-evidence lane of VS
-prediction: searchText (embedded) + content_vector + properties.valueStreams. searchText is built
-the SAME way as the prediction query (build_retrieval_text) so a stored ticket and a live query
-share the vector space. valueStreams carries the resolved VS GT (id + name) so a historical hit
-brings its labels without a Cosmos lookup. Identity: id=uuid (deterministic), key=IDMT-#### (the
-match/leave-one-out key), sourceId=stable Jira id. status = the ticket's Jira status.
+prediction: searchText (embedded) + content_vector + the match key. searchText is built the SAME
+way as the prediction query (build_retrieval_text) so a stored ticket and a live query share the
+vector space. This doc is RETRIEVAL-ONLY and carries NO ``properties``: the VS labels (GT) and the
+full ticket detail are read from Cosmos by sourceId/key when a hit is used (the index's
+``properties`` field belongs to the ValueStream catalogue lane, not these docs). Identity: id=uuid
+(deterministic, equal to the Cosmos ER doc id), key=IDMT-#### (the match/leave-one-out key),
+sourceId=stable Jira id. status = the ticket's Jira status.
 """
 
 from __future__ import annotations
