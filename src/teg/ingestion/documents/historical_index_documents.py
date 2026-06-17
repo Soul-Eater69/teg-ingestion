@@ -11,12 +11,14 @@ match/leave-one-out key), sourceId=stable Jira id. status = the ticket's Jira st
 from __future__ import annotations
 
 from teg.domain.condensed import CondensedTicket, SummaryFields
-from teg.ingestion.documents.idmt_documents import ER_ENTITY_TYPE, doc_id
+from teg.ingestion.documents.idmt_documents import ER_KIND, doc_id
 from teg.ingestion.extraction.jira_records import ExtractedEngagementRequest
 from teg.ingestion.ground_truth.theme_ground_truth import ThemeGroundTruth
 
-SOURCE = "JIRA"
-ENTITY_TYPE = ER_ENTITY_TYPE
+# The retrieval-only index, NOT the Cosmos house style: source/entityType stay as the deployed
+# index's filter values - the historic lane filters `entityType eq 'EngagementRequest'` (PascalCase).
+SOURCE = "Jira"
+ENTITY_TYPE = ER_KIND  # "EngagementRequest" - must match the retrieval filter, not the Cosmos field
 
 
 def build_retrieval_text(summary: SummaryFields) -> str:
