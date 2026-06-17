@@ -53,15 +53,3 @@ def test_theme_doc_without_themes_property_is_fine() -> None:
     assert out["domain"] == "WORKITEM"
     assert out["entityType"] == "THEME"
     assert out["properties"] == {"summary": "t"}
-
-
-def test_theme_value_stream_object_collapses_to_string() -> None:
-    theme = {"id": "u3", "entityType": "Theme", "source": "Jira", "createdBy": "teg-ingestion",
-             "lastModifiedBy": "teg-ingestion",
-             "properties": {"summary": "t",
-                            "valueStream": {"valueStreamId": "VSR00074590",
-                                            "valueStreamName": "Resolve Appeal"}}}
-    out = to_cosmos_doc(theme)
-    assert out["properties"]["valueStream"] == "Resolve Appeal {VSR00074590}"
-    # idempotent: a doc already in string form is unchanged
-    assert to_cosmos_doc(out)["properties"]["valueStream"] == "Resolve Appeal {VSR00074590}"

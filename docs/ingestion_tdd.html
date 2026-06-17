@@ -432,9 +432,8 @@ Stream.</p>
 </tr>
 </tbody>
 </table>
-<p><strong><code>properties</code>:</strong> <code>summary</code> (Theme title), <code>description</code>, <code>valueStream</code> (the linked Value Stream as the
-single <code>&lt;name&gt; {id}</code> string, e.g. <code>Resolve Appeal {VSR00074590}</code> — not a nested object),
-<code>creationDate</code>, <code>insightsTime</code>.</p>
+<p><strong><code>properties</code>:</strong> <code>summary</code> (Theme title), <code>description</code>, <code>valueStream</code> (the linked Value Stream as a
+nested object — <code>{ valueStreamName, valueStreamId }</code>), <code>creationDate</code>, <code>insightsTime</code>.</p>
 <blockquote>
 <p>Themes are <strong>separate documents</strong>, found via <code>parentRef</code> — not embedded as a <code>themes[]</code> array on the
 IDMT document.</p>

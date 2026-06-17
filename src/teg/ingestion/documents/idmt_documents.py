@@ -50,14 +50,6 @@ def doc_id(entity_type: str, source_id: str) -> str:
     return str(uuid.uuid5(_DOC_NS, f"{entity_type}:{source_id}"))
 
 
-def value_stream_label(name: str, vs_id: str) -> str:
-    """The Theme's Value Stream as the raw ``<name> {id}`` string (TDD §4.4), e.g.
-    ``Resolve Appeal {VSR00074590}``. Empty string when neither is present."""
-    if not (name or vs_id):
-        return ""
-    return f"{name} {{{vs_id}}}"
-
-
 def build_idmt_document(
     *,
     er: ExtractedEngagementRequest,
@@ -114,8 +106,10 @@ def build_theme_document(theme: ExtractedTheme, *, parent_er_id: str) -> dict:
         "properties": {
             "summary": theme.summary,  # ISSUE title
             "description": clean_text(theme.description),
-            # The Value Stream as the raw "<name> {id}" string (TDD §4.4), not a nested object.
-            "valueStream": value_stream_label(theme.value_stream_name, theme.value_stream_id),
+            "valueStream": {
+                "valueStreamId": theme.value_stream_id,
+                "valueStreamName": theme.value_stream_name,
+            },
             "creationDate": theme.created_date or None,  # source created
             "insightsTime": theme.modified_date or None,  # source last updated
         },

@@ -85,7 +85,7 @@ def test_theme_document_shape() -> None:
     props = doc["properties"]
     assert props["summary"] == "CP 2027 Guided Health Plans : Appeal Decision"  # ISSUE title
     assert props["description"].startswith("This theme")
-    assert props["valueStream"] == "Resolve Appeal {VSR00074590}"  # raw "<name> {id}" string
+    assert props["valueStream"] == {"valueStreamId": "VSR00074590", "valueStreamName": "Resolve Appeal"}
     assert props["creationDate"].startswith("2025-07-09")  # source created
 
 
