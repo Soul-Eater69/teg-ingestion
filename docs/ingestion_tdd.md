@@ -229,8 +229,8 @@ Holds the historical Engagement-Request documents for retrieval.
 | `id` | Azure Search document **key** — the deterministic uuid (same id as the Cosmos ER doc) |
 | `key` | Jira issue key, e.g. `IDMT-####` (mutable business key) |
 | `sourceId` | stable Jira internal id (stable across IDMT-key changes) |
-| `source` | origin system — `Jira` |
-| `entityType` | `EngagementRequest` — **PascalCase** (the retrieval filter is `entityType eq 'EngagementRequest'`; the index intentionally differs from the Cosmos doc's uppercase `ENGAGEMENTREQUEST`) |
+| `source` | origin system — `JIRA` |
+| `entityType` | `ENGAGEMENTREQUEST` (uppercase, same value everywhere; the historic-lane retrieval filter is `entityType eq 'ENGAGEMENTREQUEST'`) |
 | `status` | Jira status (Cancelled / To Do / In Progress …) |
 | `searchText` | `businessSummary + businessProblem + businessCapability + keyTerms + stakeholders + systemsAndProducts` |
 | `content_vector` | vectorized `searchText` |

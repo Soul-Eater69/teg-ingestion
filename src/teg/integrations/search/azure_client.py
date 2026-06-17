@@ -2,7 +2,7 @@
 
 One unified index (idp_teg_data) holds both doc types our ingestion produces; the
 ``entityType`` field is the lane discriminator: 'ValueStream' for the catalogue lane
-(hybrid text+vector+semantic), 'EngagementRequest' for the historical lane (pure
+(hybrid text+vector+semantic), 'ENGAGEMENTREQUEST' for the historical lane (pure
 vector). The query is embedded via the embeddings client. Result mapping reads our
 generated nested ``properties`` shape; the pure mappers are unit-tested, the SDK search
 calls need live creds (gated smoke test).
@@ -27,7 +27,7 @@ except Exception:  # pragma: no cover - import guarded so the module always load
     VectorizedQuery = None  # type: ignore[assignment]
 
 _VS_FILTER = "entityType eq 'ValueStream'"
-_HISTORICAL_FILTER = "entityType eq 'EngagementRequest'"
+_HISTORICAL_FILTER = "entityType eq 'ENGAGEMENTREQUEST'"
 _RERANKER_SCALE = 4.0  # Azure semantic reranker scores are 0-4
 # The BM25 keyword query is capped: a long query (e.g. raw ticket text) has thousands of terms,
 # and terms x searchable-fields must stay under Azure's 3000-clause limit. The vector query still

@@ -11,14 +11,15 @@ match/leave-one-out key), sourceId=stable Jira id. status = the ticket's Jira st
 from __future__ import annotations
 
 from teg.domain.condensed import CondensedTicket, SummaryFields
-from teg.ingestion.documents.idmt_documents import ER_KIND, doc_id
+from teg.ingestion.documents.idmt_documents import ER_ENTITY_TYPE, ER_KIND, doc_id
 from teg.ingestion.extraction.jira_records import ExtractedEngagementRequest
 from teg.ingestion.ground_truth.theme_ground_truth import ThemeGroundTruth
 
-# The retrieval-only index, NOT the Cosmos house style: source/entityType stay as the deployed
-# index's filter values - the historic lane filters `entityType eq 'EngagementRequest'` (PascalCase).
-SOURCE = "Jira"
-ENTITY_TYPE = ER_KIND  # "EngagementRequest" - must match the retrieval filter, not the Cosmos field
+# Retrieval-only doc. entityType/source are UPPERCASE (one consistent value everywhere); the historic
+# lane filters `entityType eq 'ENGAGEMENTREQUEST'`. The doc id derives from ER_KIND (PascalCase, the
+# stable identity) so it equals the Cosmos ER doc's id and never drifts with the field casing.
+SOURCE = "JIRA"
+ENTITY_TYPE = ER_ENTITY_TYPE  # "ENGAGEMENTREQUEST"
 
 
 def build_retrieval_text(summary: SummaryFields) -> str:
@@ -47,7 +48,7 @@ def build_historical_index_document(
     # point-read returns both). theme_gt is accepted for signature stability but no longer stored.
     _ = theme_gt
     return {
-        "id": doc_id(ENTITY_TYPE, er.stable_id),  # uuid (deterministic)
+        "id": doc_id(ER_KIND, er.stable_id),  # uuid (deterministic) - same id as the Cosmos ER doc
         "key": er.key or None,  # IDMT-#### (the retrieval match / leave-one-out key)
         "sourceId": er.stable_id,  # stable Jira internal id
         "source": SOURCE,
