@@ -18,6 +18,7 @@ Usage:
   uv run python scripts/generate_docs_local.py IDMT-19761 IDMT-12857 --out out/local_docs
   uv run python scripts/generate_docs_local.py --from-file output_prod/idmt_vs_valid_ticket_keys.txt
   uv run python scripts/generate_docs_local.py IDMT-19761 --embed
+  uv run python scripts/generate_docs_local.py --from-file tickets.txt --concurrency 4   # bulk, 4 at a time
 """
 
 from __future__ import annotations
@@ -84,23 +85,30 @@ async def main(args: argparse.Namespace) -> None:
     settings = load_settings()
     ingestion = _build_ingestion(settings, embed=args.embed)
     out_root = Path(args.out)
+    concurrency = max(1, args.concurrency)
     print(f"generating docs for {len(tickets)} ticket(s) -> {out_root}/  "
-          f"(embed={args.embed}; NO Cosmos/index write)\n")
+          f"(embed={args.embed}; concurrency={concurrency}; NO Cosmos/index write)\n")
 
-    for tid in tickets:
-        try:
-            result = await ingestion.ingest(tid)
-        except Exception as exc:
-            print(f"  {tid}: ERROR {type(exc).__name__}: {exc}")
-            continue
-        d = out_root / tid
-        d.mkdir(parents=True, exist_ok=True)
-        _write(d / "idmt.json", result.idmt_document)
-        _write(d / "index.json", result.historical_index_document)
-        for theme in result.theme_documents:
-            key = (theme.get("key") or theme.get("sourceId") or "theme")
-            _write(d / f"theme_{key}.json", theme)
-        print(f"  {tid}: idmt.json + index.json + {len(result.theme_documents)} theme doc(s) -> {d}/")
+    # Bound how many tickets run at once. Each ticket is isolated: one failing does not stop the rest.
+    semaphore = asyncio.Semaphore(concurrency)
+
+    async def _one(tid: str) -> None:
+        async with semaphore:
+            try:
+                result = await ingestion.ingest(tid)
+            except Exception as exc:
+                print(f"  {tid}: ERROR {type(exc).__name__}: {exc}")
+                return
+            d = out_root / tid
+            d.mkdir(parents=True, exist_ok=True)
+            _write(d / "idmt.json", result.idmt_document)
+            _write(d / "index.json", result.historical_index_document)
+            for theme in result.theme_documents:
+                key = (theme.get("key") or theme.get("sourceId") or "theme")
+                _write(d / f"theme_{key}.json", theme)
+            print(f"  {tid}: idmt.json + index.json + {len(result.theme_documents)} theme doc(s) -> {d}/")
+
+    await asyncio.gather(*(_one(tid) for tid in tickets))
 
     print(f"\ndone. inspect the JSON under {out_root}/ — nothing was persisted.")
 
@@ -114,4 +122,6 @@ if __name__ == "__main__":
     p.add_argument("--embed", action="store_true",
                    help="populate content_vector via the embeddings model (needs Azure embeddings)")
     p.add_argument("--limit", type=int, default=0, help="cap the number of tickets")
+    p.add_argument("--concurrency", type=int, default=1,
+                   help="how many tickets to process at once (default 1 = sequential)")
     asyncio.run(main(p.parse_args()))
