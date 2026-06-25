@@ -17,6 +17,7 @@ class CondenseConfig:
     # untouched; the rest are the huge decks, truncated here rather than dropping a whole attachment).
     doc_char_budget: int = 96_000
     # How many attachments to DOWNLOAD + extract (the budget above caps the actual content kept, via
-    # greedy packing). 8 lets the 5th-8th be included when they fit the budget (corpus max is 12);
-    # the token budget, not this count, is the real cap.
-    max_attachments: int = 8
+    # greedy packing). EDA: keeping 4 retains 99% of content (the knee), and only ~10% of tickets
+    # have 5+; 5 keeps that knee plus one for the content-heavy tickets. The token budget, not this
+    # count, is the real cap.
+    max_attachments: int = 5
