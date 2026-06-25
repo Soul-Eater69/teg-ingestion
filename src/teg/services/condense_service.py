@@ -9,8 +9,11 @@ from __future__ import annotations
 from time import perf_counter
 
 from teg.condense.condenser import condense as run_condense
-from teg.condense.config import CondenseConfig
-from teg.condense.ticket_context import resolve_from_ticket
+from teg.condense.ticket_context import (
+    DEFAULT_DOC_CHAR_BUDGET,
+    DEFAULT_MAX_ATTACHMENTS,
+    resolve_from_ticket,
+)
 from teg.contracts.condense_io import CondenseRequest, CondenseResponse
 from teg.integrations.files import AttachmentTextExtractor
 from teg.integrations.jira import JiraClient
@@ -26,13 +29,15 @@ class CondenseService:
         extractor: AttachmentTextExtractor,
         *,
         model_name: str = "",
-        config: CondenseConfig = CondenseConfig(),
+        doc_char_budget: int = DEFAULT_DOC_CHAR_BUDGET,
+        max_attachments: int = DEFAULT_MAX_ATTACHMENTS,
     ) -> None:
         self._jira = jira_client
         self._llm = llm_client
         self._extractor = extractor
         self._model_name = model_name
-        self._config = config
+        self._doc_char_budget = doc_char_budget
+        self._max_attachments = max_attachments
 
     async def condense(self, request: CondenseRequest) -> CondenseResponse:
         """Fetch the ticket, resolve the idea-card source, run the condense pass.
@@ -42,7 +47,11 @@ class CondenseService:
         ticket = await self._jira.fetch_ticket(request.ticket_id)
         t0 = perf_counter()
         context = await resolve_from_ticket(
-            ticket, self._jira, self._extractor, config=self._config
+            ticket,
+            self._jira,
+            self._extractor,
+            doc_char_budget=self._doc_char_budget,
+            max_attachments=self._max_attachments,
         )
         t1 = perf_counter()  # extraction = download + text extract + consolidate
         condensed = await run_condense(context, self._llm)

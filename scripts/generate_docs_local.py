@@ -28,7 +28,6 @@ import asyncio
 import json
 from pathlib import Path
 
-from teg.condense.config import CondenseConfig
 from teg.config.settings import Settings, load_settings
 from teg.integrations.embeddings import build_embeddings_client
 from teg.integrations.files import build_attachment_extractor
@@ -41,16 +40,13 @@ from teg.services.condense_service import CondenseService
 
 def _build_ingestion(settings: Settings, *, embed: bool) -> IdmtIngestion:
     """Wire the ingestion pipeline directly (no generation deps)."""
-    config = CondenseConfig(
-        doc_char_budget=settings.condense_doc_char_budget,
-        max_attachments=settings.condense_max_attachments,
-    )
     condense_service = CondenseService(
         build_jira_client(settings),
         build_llm_client(settings),
         build_attachment_extractor(),
         model_name=settings.llm_model,
-        config=config,
+        doc_char_budget=settings.condense_doc_char_budget,
+        max_attachments=settings.condense_max_attachments,
     )
     return IdmtIngestion(
         jira_source=build_jira_ingestion_source(settings),

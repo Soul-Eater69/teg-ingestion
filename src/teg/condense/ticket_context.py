@@ -10,10 +10,15 @@ from __future__ import annotations
 import asyncio
 
 from teg.condense.attachment_ranker import select_attachments
-from teg.condense.config import CondenseConfig
 from teg.condense.models import ResolvedContext
 from teg.integrations.files import AttachmentTextExtractor
 from teg.integrations.jira import JiraAttachment, JiraClient, JiraTicket
+
+# Fallback-path knobs (the idea-card path ignores them - the idea card is used in full). The token
+# budget is the real cap: kept content is greedy-packed to ~96k chars ≈ 24k tokens regardless of the
+# file count; we only DOWNLOAD up to max_attachments. Overridable via TEG_CONDENSE_* settings.
+DEFAULT_DOC_CHAR_BUDGET = 96_000  # ~24k tokens (per docs/token_analysis_findings.md)
+DEFAULT_MAX_ATTACHMENTS = 5
 
 
 def _section(tag: str, body: str) -> str:
@@ -58,12 +63,13 @@ async def resolve_from_ticket(
     jira_client: JiraClient,
     extractor: AttachmentTextExtractor,
     *,
-    config: CondenseConfig = CondenseConfig(),
+    doc_char_budget: int = DEFAULT_DOC_CHAR_BUDGET,
+    max_attachments: int = DEFAULT_MAX_ATTACHMENTS,
 ) -> ResolvedContext:
     """Idea-card-first resolution. Idea card -> sole attachment (used in full); else top-N."""
     selection = select_attachments(
         ticket.attachments,
-        max_fallback=config.max_attachments,
+        max_fallback=max_attachments,
     )
 
     chosen: list[JiraAttachment]
@@ -89,7 +95,7 @@ async def resolve_from_ticket(
         consolidated = _consolidate(
             ticket.description,
             documents,
-            doc_char_budget=config.doc_char_budget,
+            doc_char_budget=doc_char_budget,
         )
 
     return ResolvedContext(

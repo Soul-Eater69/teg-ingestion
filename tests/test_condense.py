@@ -6,7 +6,6 @@ import pytest
 
 from teg.condense.attachment_ranker import select_attachments
 from teg.condense.condenser import condense
-from teg.condense.config import CondenseConfig
 from teg.condense.ticket_context import resolve_from_ticket
 from teg.contracts.condense_io import CondenseRequest
 from teg.domain.condensed import SummaryFields
@@ -125,7 +124,7 @@ class _LongExtractor:
 async def test_description_full_and_attachments_greedily_packed_to_budget() -> None:
     ticket = _ticket([JiraAttachment("a.pdf"), JiraAttachment("b.pdf")])
     ctx = await resolve_from_ticket(
-        ticket, FakeJira(ticket), _LongExtractor(), config=CondenseConfig(doc_char_budget=400)
+        ticket, FakeJira(ticket), _LongExtractor(), doc_char_budget=400
     )
     assert ticket.description in ctx.consolidated_text  # authoritative, never truncated
     # GREEDY: description (counts against the 400 budget); the FIRST doc takes the whole remaining
@@ -137,7 +136,7 @@ async def test_description_full_and_attachments_greedily_packed_to_budget() -> N
 async def test_idea_card_used_in_full_ignoring_budget() -> None:
     ticket = _ticket([JiraAttachment("idea_card.pptx")])
     ctx = await resolve_from_ticket(
-        ticket, FakeJira(ticket), _LongExtractor(), config=CondenseConfig(doc_char_budget=400)
+        ticket, FakeJira(ticket), _LongExtractor(), doc_char_budget=400
     )
     assert ctx.consolidated_text.count("X") == 5000  # idea card is used complete, not capped
 
