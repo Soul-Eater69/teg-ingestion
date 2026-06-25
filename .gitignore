@@ -11,3 +11,12 @@ build/
 out/
 output_prod/
 .env
+
+# local cohort / ticket lists
+cohort.txt
+ticket.txt
+
+# not published
+tests/
+uv.lock
+CODE_QUALITY.md

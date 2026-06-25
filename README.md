@@ -1,73 +1,137 @@
 # teg-ingestion
 
-The **ingestion module** of the Theme & Epic Generation (TEG) system, packaged as a self-contained,
-installable module with every dependency it needs bundled (prompts, LLM/embeddings/Jira/search clients,
-shared models). Ingestion converts historical IDMT Engagement Request tickets into the trusted corpus —
-**Cosmos** (system of record) + the **idp_teg_data** retrieval index — that the generation module reads.
+The **ingestion module** of the Theme & Epic Generation (TEG) system. It converts historical IDMT
+Engagement Request tickets into the trusted corpus — **Cosmos** (system of record) + the
+**`idp_teg_data`** Azure AI Search retrieval index — that the generation module reads.
 
 Design reference: **`docs/ingestion_tdd.md`** (with flowcharts).
 
-## Install & test
+---
 
-This is a **uv package** (`pyproject.toml` + `uv.lock`). Test tooling is in the `dev`
-dependency-group (installed by default); the runtime features are optional extras.
+## Setup
+
+This is a **uv package** (`pyproject.toml`). The runtime features are optional extras:
+
+| Extra | Pulls in | Needed for |
+| --- | --- | --- |
+| `extract` | pypdfium2, python-pptx, python-docx | reading PDF / PPTX / DOCX attachments (Stage 1) |
+| `neo4j` | neo4j driver | the cohort fetcher (Stage 0) |
+| `azure` | azure-cosmos, azure-search-documents, azure-identity | Cosmos + AI Search persistence (Stage 2) |
+
+**1. Configure** — copy the example env and fill it in:
 
 ```bash
-# create the env + install the module, the dev group, and the feature extras
-uv sync --extra extract --extra neo4j     # extract = pdf/pptx/docx · neo4j = Stage 0
-#   add  --extra azure  for live Cosmos / AI-Search persistence
-
-# run the tests (no live Jira / Azure / LLM calls — clients are faked)
-uv run pytest                             # 48 tests, all passing
+cp .env.example .env
+# then edit .env — Settings load automatically (TEG_ prefix; Stage 0 uses NEO4J_* with no prefix)
 ```
 
-> Prefer pip? `pip install -e ".[extract,neo4j]"` then `pip install pytest pytest-asyncio` works too —
-> the `dev` group is uv-native, so under pip install the test deps explicitly.
+**2. Install the extras** — simplest is to sync everything once:
 
-Entry point: `teg.ingestion.pipeline.idmt_ingestion.IdmtIngestion.ingest(ticket_id)` — inject a
-`JiraIngestionSource`, a `CondenseService`, and (optionally) an `EmbeddingsClient`. Configuration is via
-`teg.config.settings.Settings` (env-driven, `TEG_` prefix).
+```bash
+uv sync --all-extras
+```
 
-**Models used:** condense = `gpt-5-mini-idp`; embeddings = `text-embedding-3-small-idp` (1536-d).
+> ⚠️ **uv gotcha:** a plain `uv run python …` re-syncs the env to the default and *drops* extras. Either
+> `uv sync --all-extras` once (recommended), or pass the extras on every run, e.g.
+> `uv run --extra extract --extra azure python scripts/…`.
 
-## Run it end to end — locally, no persistence
+---
 
-First set up config: **copy `.env.example` → `.env`** and fill in the Jira + LLM-gateway values (and
-`NEO4J_*` for Stage 0). Settings load from `.env` automatically (`TEG_` prefix).
+## Pipeline — end to end
 
-Two scripts under `scripts/` let you (1) fetch the valid-ticket cohort, then (2) generate the Cosmos +
-index documents to **local JSON** — **nothing is written to Cosmos or the search index.**
+```
+Stage 0  fetch cohort (Neo4j)         →  cohort.txt
+Stage 1  generate docs (Jira + LLM)   →  out/local_docs/<ticket>/{idmt,theme_*,index}.json
+Stage 2  provision + persist (Azure)  →  idp_teg_data index + Cosmos
+```
 
-**Stage 0 — fetch the valid tickets** (Neo4j; set `NEO4J_URI / USER / PASSWORD`):
+### Stage 0 — fetch the valid-ticket cohort (Neo4j)
+
+Applies the L2→L6 funnel (ER not Cancelled/Blocked/New Request → `implemented by` a non-Cancelled
+Theme with a `{VSR…}` value stream) and writes the ticket keys.
 
 ```bash
 uv run python scripts/fetch_idmt_vs_valid_tickets.py --output cohort.txt
-# writes the usable IDMT ticket keys (one per line) to cohort.txt
+# options: --since 2023-01-01 (start date) · --stdout (also print) · --no-file
 ```
 
-**Stage 1 — generate the docs locally** (calls live Jira + the LLM gateway to fetch + condense; writes
-JSON, no upload). Configure the `TEG_*` settings (Jira + LLM gateway) first:
+### Stage 1 — generate the docs locally (Jira + LLM gateway)
+
+Fetches each ticket, extracts attachments, condenses to a ~24k-token budget, and writes the Cosmos +
+index JSON to disk. **Nothing is persisted** in this stage.
 
 ```bash
 # one ticket
-uv run python scripts/generate_docs_local.py IDMT-19761 --out out/local_docs
+uv run python scripts/generate_docs_local.py IDMT-19761 --out out/local_docs --embed
 
-# the whole cohort from Stage 0
-uv run python scripts/generate_docs_local.py --from-file cohort.txt --out out/local_docs
+# the whole cohort, 4 at a time
+uv run python scripts/generate_docs_local.py --from-file cohort.txt --out out/local_docs --embed --concurrency 4
 ```
 
-For each ticket it writes under `out/local_docs/<ticket-id>/`:
+Per ticket it writes `out/local_docs/<ticket>/`:
 - `idmt.json` — the Cosmos Engagement-Request document
 - `theme_<KEY>.json` — one Cosmos Theme document per linked Theme
-- `index.json` — the idp_teg_data search-index document (`content_vector` is null unless `--embed`)
+- `index.json` — the `idp_teg_data` search-index document (`content_vector` is null **unless `--embed`**)
 
-Inspect the JSON to see exactly what *would* be ingested — no actual ingestion happens.
+Flags: `--embed` (compute embeddings — **required** before upload) · `--concurrency N` · `--limit N`
+(smoke test) · `--from-file <cohort.txt>`.
+
+### Stage 2 — provision the index, then persist (Azure)
+
+Writes to the live services. Both ingest steps are **idempotent** (upsert by deterministic id — re-running
+overwrites, never duplicates). The Cosmos doc and the index doc for a ticket share the **same `id`**.
+
+```bash
+# 2a. create-or-update the index from its JSON schema (idempotent; one-time / on schema change)
+uv run python scripts/create_index.py
+#     --recreate  →  DROP then create (loses all docs; only for incompatible schema changes)
+
+# 2b. upsert the Cosmos docs (idmt.json + theme_*.json)
+uv run python scripts/cosmos_ingest.py --dir out/local_docs
+
+# 2c. upsert the index docs (index.json) — refuses docs whose content_vector is null
+uv run python scripts/upload_index.py --dir out/local_docs
+```
+
+`cosmos_ingest.py` / `upload_index.py` also take `--ticket IDMT-####` (one ticket) and `--limit N`
+(smoke test). `data/idp_teg_data_index.json` is the **single source of truth** for the index schema.
+
+---
+
+## Utility scripts
+
+```bash
+# audit local docs for the lastModifiedyBy / lastModifiedyAt key typo (exit 1 if any found)
+uv run python scripts/check_typo_keys.py --dir out/local_docs
+```
+
+---
+
+## Environment variables
+
+Copy `.env.example` → `.env`. Grouped by stage:
+
+- **Stage 0 (Neo4j, no prefix):** `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD` (`NEO4J_DATABASE` optional)
+- **Stage 1 (Jira + LLM):** `TEG_JIRA_BASE_URL`, `TEG_JIRA_TOKEN`, `TEG_LLM_BASE_URL`, `TEG_LLM_MODEL`,
+  `TEG_LLM_APP_ID`, `TEG_IDP_AUTH_URL`, `TEG_IDP_CLIENT_ID`, `TEG_IDP_CLIENT_SECRET`, `TEG_IDP_USER`,
+  `TEG_IDP_PASSWORD`, `TEG_EMBEDDING_MODEL` (for `--embed`)
+- **Stage 2 (Cosmos + Search):** `TEG_COSMOS_ENDPOINT`, `TEG_COSMOS_DATABASE`, `TEG_COSMOS_CONTAINER`,
+  `TEG_SEARCH_ENDPOINT`, `TEG_SEARCH_INDEX`. **Auth:** the Azure service principal
+  (`TEG_AZURE_TENANT_ID` / `TEG_AZURE_CLIENT_ID` / `TEG_AZURE_CLIENT_SECRET`, or the org's `AZURE_*_DEV`
+  names) — needs the **"Cosmos DB Built-in Data Contributor"** role — **or** fall back to
+  `TEG_COSMOS_KEY` / `TEG_SEARCH_API_KEY`.
+
+Models: condense = `gpt-5-mini-idp`; embeddings = `text-embedding-3-small-idp` (1536-d). The condense
+budget is `TEG_CONDENSE_DOC_CHAR_BUDGET` (default 96k chars ≈ 24k tokens) over
+`TEG_CONDENSE_MAX_ATTACHMENTS` (default 5) downloaded attachments.
+
+---
 
 ## Layout
 
 ```
 src/teg/
-  ingestion/        ← the module (the focus)
+  ingestion/        the module (the focus)
     pipeline/         per-ticket orchestrator (idmt_ingestion.py)
     extraction/       Jira fetch + Business Value Stream field parsing
     documents/        Cosmos IDMT/Theme + historical index builders
@@ -75,45 +139,14 @@ src/teg/
     upload/           AI-search index uploader
   condense/         attachment ranking, raw-text assembly, the single condense LLM pass
   integrations/     low-level clients: jira, files (pdf/pptx/docx), embeddings, search, cosmos, llm
-  services/         condense service wrapper only    ← shared dep
-  contracts/ domain/ config/ prompts/  shared models, settings, the condense prompt
-tests/              48 ingestion tests (all passing)
-data/               index schema fixture
+  services/         condense service wrapper
+  contracts/ domain/ config/ prompts/   shared models, settings, the condense prompt
+data/               idp_teg_data index schema (source of truth)
 docs/               ingestion_tdd (md + pdf) + flowcharts
+scripts/            the runnable pipeline (fetch / generate / create_index / cosmos_ingest / upload_index)
 ```
 
-> This is the **ingestion subset only** — exactly the modules the runnable pipeline + scripts use, plus
-> the low-level integration clients. No generation code (theme / value-stream / stage selection, their
-> prompts and judges) and no `value_stream/` package — the one retrieval-text helper the index builder
-> needed is inlined into `historical_index_documents.py`. Per the TDD, the **VS/Stage catalogue is not
-> built here** (it is the org's gold data in Azure SQL), so the catalogue loader / VS-catalogue index
-> builder / stage ground-truth modules are not included either.
->
-> **Condense is a single LLM pass** (`SummaryFields` — generated summary, business problem/capability,
-> key terms, stakeholders, systems & products), matching `docs/ingestion_tdd.md` §4.3-4.4. The old
-> second "generation signals" pass is removed; ingestion never stored it.
-
-## What is implemented (and what is not)
-
-**Implemented & tested** — the per-ticket pipeline:
-- Fetch the Engagement Request + linked Themes; read each Theme's Value Stream directly from its
-  **Business Value Stream** field (`<name> {id}`, taken as-is — no fuzzy match, no LLM).
-- Extract attachments (`.pdf`/`.pptx`/`.docx`, priority PowerPoint → PDF → Word), assemble the raw text
-  to a ~24k-token budget, and **condense** it into the business-context fields.
-- Build the Cosmos **Engagement Request** doc, one Cosmos **Theme** doc per linked Theme, and the
-  **historical search-index** doc (with embedding).
-- 48 tests pass (Jira source, document builders, condense, extractor, index-schema conformance, …).
-
-**Not in this module / not yet wired** (see the TDD for the target design):
-- **Stage 0 — ticket identification.** The Neo4j 5-filter funnel that produces the eligible ticket list
-  is a **separate production script** (`scripts/fetch_idmt_vs_valid_tickets.py`). The pipeline takes one
-  `ticket_id` and assumes identification already happened.
-- **Batch runner** and **Cosmos persistence write.** The pipeline *builds* and returns the documents;
-  the write to Cosmos and the batch loop over the cohort are the caller's responsibility (the Cosmos /
-  AI-Search clients under `integrations/` are provided for that).
-- **VS/Stage catalogue + stage ground truth.** Per the TDD these are the org's gold data in Azure SQL,
-  consumed as-is — ingestion does not build them, so that code is intentionally absent.
-
-## Conventions
-Code-quality standards are in **`CODE_QUALITY.md`** — please follow them. Unit tests must not make live
-Jira / Azure / LLM calls; inject fakes.
+The **VS/Stage catalogue is not built here** (it is the org's gold data in Azure SQL, consumed as-is),
+so the catalogue loader / VS-catalogue index builder / stage ground-truth modules are intentionally
+absent. Condense is a **single LLM pass** (generated summary + business context fields), per
+`docs/ingestion_tdd.md` §4.3–4.4.
