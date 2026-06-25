@@ -64,17 +64,13 @@ def select_attachments(
     attachments: list[JiraAttachment],
     *,
     max_fallback: int = _MAX_FALLBACK_ATTACHMENTS,
-    max_bytes: int = 0,
 ) -> SelectedAttachments:
-    # Idea card wins outright - trusted, used in full, never size-filtered.
+    # Idea card wins outright - trusted, used in full.
     for attachment in attachments:
         if is_idea_card(attachment.filename):
             return SelectedAttachments(idea_card=attachment, fallback=[])
 
     supported = [a for a in attachments if is_supported(a.filename)]
-    if max_bytes:
-        # Skip oversized (likely image-heavy) files. Keep unknown sizes (0) - don't guess.
-        supported = [a for a in supported if not a.size_bytes or a.size_bytes <= max_bytes]
     ranked = sorted(
         enumerate(supported),
         key=lambda pair: (_FORMAT_PRIORITY[_extension(pair[1].filename)], pair[0]),

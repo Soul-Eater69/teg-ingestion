@@ -44,8 +44,6 @@ def _build_ingestion(settings: Settings, *, embed: bool) -> IdmtIngestion:
     config = CondenseConfig(
         doc_char_budget=settings.condense_doc_char_budget,
         max_attachments=settings.condense_max_attachments,
-        max_attachment_bytes=settings.condense_max_attachment_bytes,
-        min_doc_chars=settings.condense_min_doc_chars,
     )
     condense_service = CondenseService(
         build_jira_client(settings),

@@ -142,13 +142,6 @@ async def test_idea_card_used_in_full_ignoring_budget() -> None:
     assert ctx.consolidated_text.count("X") == 5000  # idea card is used complete, not capped
 
 
-async def test_fallback_drops_near_empty_docs() -> None:
-    ticket = _ticket([JiraAttachment("a.pdf")])  # FakeExtractor yields < min_doc_chars
-    ctx = await resolve_from_ticket(ticket, FakeJira(ticket), FakeExtractor())
-    assert "[DESCRIPTION]" in ctx.consolidated_text
-    assert "[DOCUMENT:" not in ctx.consolidated_text  # near-empty extraction dropped
-
-
 def test_select_attachments_respects_max_fallback() -> None:
     selection = select_attachments(
         [JiraAttachment("a.pdf"), JiraAttachment("b.pdf"), JiraAttachment("c.pdf")],
@@ -156,20 +149,6 @@ def test_select_attachments_respects_max_fallback() -> None:
     )
     assert selection.idea_card is None
     assert [a.filename for a in selection.fallback] == ["a.pdf", "b.pdf"]
-
-
-def test_select_attachments_skips_oversized_fallback() -> None:
-    selection = select_attachments(
-        [
-            JiraAttachment("big.pdf", size_bytes=50_000_000),
-            JiraAttachment("small.pdf", size_bytes=1_000),
-            JiraAttachment("unknown.pdf", size_bytes=0),
-        ],
-        max_bytes=10_000_000,
-    )
-    names = [a.filename for a in selection.fallback]
-    assert "big.pdf" not in names  # oversized skipped pre-download
-    assert names == ["small.pdf", "unknown.pdf"]  # small kept; unknown size kept
 
 
 # ---- condenser -----------------------------------------------------------

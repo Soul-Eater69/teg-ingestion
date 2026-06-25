@@ -25,7 +25,6 @@ def _consolidate(
     documents: list[tuple[str, str]],
     *,
     doc_char_budget: int | None = None,
-    min_doc_chars: int = 0,
 ) -> str:
     """Combine the description (always full - the one authoritative source) with docs.
 
@@ -33,12 +32,9 @@ def _consolidate(
     attachment (in ranked order) takes up to the REMAINING budget, until the budget is exhausted.
     So small attachments don't waste their share, big ones aren't over-truncated, and the 5th/6th
     attachment is included whenever it still fits - the token budget is the only cap, not a count.
-    ``doc_char_budget=None`` -> every doc in full (idea-card path). Docs under ``min_doc_chars`` are
-    dropped as near-empty (image files without OCR).
+    ``doc_char_budget=None`` -> every doc in full (idea-card path).
     """
     docs = [(name, text) for name, text in documents if text and text.strip()]
-    if min_doc_chars:
-        docs = [(name, text) for name, text in docs if len(text.strip()) >= min_doc_chars]
 
     blocks: list[str] = []
     desc = description.strip()
@@ -68,7 +64,6 @@ async def resolve_from_ticket(
     selection = select_attachments(
         ticket.attachments,
         max_fallback=config.max_attachments,
-        max_bytes=config.max_attachment_bytes,
     )
 
     chosen: list[JiraAttachment]
@@ -95,7 +90,6 @@ async def resolve_from_ticket(
             ticket.description,
             documents,
             doc_char_budget=config.doc_char_budget,
-            min_doc_chars=config.min_doc_chars,
         )
 
     return ResolvedContext(

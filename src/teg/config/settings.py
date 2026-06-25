@@ -82,8 +82,6 @@ class Settings(BaseSettings):
     # attachments; the budget then decides how much of them is kept.
     condense_doc_char_budget: int = 96_000  # ~24k tokens — total chars kept across fallback docs (the real cap)
     condense_max_attachments: int = 8  # how many attachments to DOWNLOAD + extract (budget caps content)
-    condense_max_attachment_bytes: int = 10_000_000  # skip larger fallback files pre-download
-    condense_min_doc_chars: int = 200  # drop fallback docs that extract to less than this
 
     @field_validator("llm_max_output_tokens", mode="before")
     @classmethod

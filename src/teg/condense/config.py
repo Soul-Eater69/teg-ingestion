@@ -20,5 +20,3 @@ class CondenseConfig:
     # greedy packing). 8 lets the 5th-8th be included when they fit the budget (corpus max is 12);
     # the token budget, not this count, is the real cap.
     max_attachments: int = 8
-    max_attachment_bytes: int = 10_000_000  # skip larger fallback files pre-download (0 = off)
-    min_doc_chars: int = 200  # drop fallback docs that extract to less than this
