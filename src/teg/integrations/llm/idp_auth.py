@@ -13,6 +13,7 @@ token endpoint (and only one coroutine refreshes per rejected token).
 from __future__ import annotations
 
 import asyncio
+import sys
 
 import httpx
 
@@ -86,6 +87,7 @@ class IDPCustomAuth(httpx.Auth):
         }
         body = {"username": self._user, "password": self._password}
         last_error: Exception | None = None
+        print(f"[auth] fetching IDP token from {self._auth_url}", file=sys.stderr, flush=True)
         async with httpx.AsyncClient(verify=self._verify_ssl, transport=self._transport) as client:
             for attempt in range(_TOKEN_MAX_RETRIES + 1):
                 if attempt:
@@ -94,15 +96,24 @@ class IDPCustomAuth(httpx.Auth):
                     response = await client.post(self._auth_url, headers=headers, json=body)
                 except httpx.TransportError as exc:  # connect/read timeout, conn reset, ...
                     last_error = exc
+                    print(f"[auth] attempt {attempt + 1}/{_TOKEN_MAX_RETRIES + 1}: cannot reach token "
+                          f"endpoint ({type(exc).__name__}: {exc})", file=sys.stderr, flush=True)
                     continue
                 if response.status_code in _TOKEN_RETRY_STATUS or response.status_code >= 500:
                     last_error = httpx.HTTPStatusError(
                         f"token endpoint {response.status_code}", request=response.request,
                         response=response)
+                    body_text = " ".join(response.text.split())[:300]
+                    print(f"[auth] attempt {attempt + 1}/{_TOKEN_MAX_RETRIES + 1}: HTTP "
+                          f"{response.status_code} from token endpoint :: {body_text}",
+                          file=sys.stderr, flush=True)
                     continue  # transient on this STS - back off and retry
                 response.raise_for_status()  # any other 4xx is a real error - surface it
                 token = response.json().get("jwt_token")
                 if not token:
                     raise RuntimeError("IDP token response missing jwt_token")
+                print("[auth] IDP token acquired", file=sys.stderr, flush=True)
                 return str(token)
+        print(f"[auth] token fetch FAILED after {_TOKEN_MAX_RETRIES + 1} attempt(s): {last_error}",
+              file=sys.stderr, flush=True)
         raise last_error or RuntimeError("IDP token fetch failed")

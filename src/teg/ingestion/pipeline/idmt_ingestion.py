@@ -10,6 +10,7 @@ Streams are carried into the historical index doc as retrieval labels.
 from __future__ import annotations
 
 import asyncio
+import sys
 from dataclasses import dataclass
 
 from teg.contracts.condense_io import CondenseRequest
@@ -49,12 +50,18 @@ class IdmtIngestion:
 
     async def ingest(self, ticket_id: str) -> IngestedTicket:
         """Build the Cosmos IDMT/Theme docs + the historical index doc for one ticket."""
+        def log(msg: str) -> None:
+            print(f"[ingest {ticket_id}] {msg}", file=sys.stderr, flush=True)
+
         # The ER fetch (+ linked themes) and condense are independent - run concurrently.
+        log("fetching ER from Jira + condensing (LLM gateway) …")
         er, condense_response = await asyncio.gather(
             self._jira.fetch_engagement_request(ticket_id),
             self._condense.condense(CondenseRequest(ticket_id=ticket_id)),
         )
         condensed = condense_response.condensed
+        log(f"Jira + condense done ({len(er.themes)} theme(s); "
+            f"condense {condense_response.summarization_seconds:.1f}s)")
 
         # The Value Stream is read straight from each theme's Business Value Stream field
         # (no catalogue match); themes without one were already dropped by the source. Each
@@ -76,7 +83,9 @@ class IdmtIngestion:
 
         content_vector = None
         if self._embeddings is not None:
+            log("embedding retrieval text (embeddings gateway) …")
             content_vector = await self._embeddings.embed(build_historical_content(condensed))
+            log("embedding done")
         historical_doc = build_historical_index_document(
             er=er, condensed=condensed, theme_gt=theme_gt, content_vector=content_vector
         )
