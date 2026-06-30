@@ -4,10 +4,12 @@ Works on the per-ticket docs written by ``generate_docs_local.py`` - the ER doc 
 Theme docs (theme_*.json). The index doc (index.json) is left untouched: it has no ``properties``
 and keeps ``key`` at the top level by design.
 
+Note: generate_docs_local.py now writes the business ``key`` at BOTH levels natively, so this
+script is a migration/repair utility for docs generated before that change (or to switch shapes).
+
 Two modes (the key value is read from wherever it currently is - properties.key or top-level key):
-  --mode both   key at BOTH the top level AND inside properties (back-compat for readers still on
-                top-level key during a migration)
-  --mode props  key ONLY inside properties (the current schema); removes any top-level key
+  --mode both   key at BOTH the top level AND inside properties (the shape the generator now emits)
+  --mode props  key ONLY inside properties (older schema); removes the top-level key
 
 Idempotent and safe to re-run. Use --dry-run to preview without writing.
 
