@@ -4,8 +4,8 @@ Single source of truth for these two shapes (TDD §5.1, §5.2). Each Theme point
 ``parentRef`` = the ER's stable ``sourceId``; an ER has no parent, so its ``parentRef`` is its own
 ``sourceId``. Level-1 fields are the Cosmos document's own lifecycle (id, timestamps, actor); the
 SOURCE ticket's audit (created/modified date) lives inside ``properties``. ``id`` is a UUID
-deterministic from the stable Jira internal id (idempotent upsert); ``properties.key`` is the
-mutable business key (IDMT-#### / GROUP-####).
+deterministic from the stable Jira internal id (idempotent upsert); the mutable business ``key``
+(IDMT-#### / GROUP-####) sits at BOTH the top level and inside ``properties`` (mirrored).
 """
 
 from __future__ import annotations
@@ -67,6 +67,7 @@ def build_idmt_document(
     now = _now()
     return {
         "id": doc_id(ER_KIND, er.stable_id),  # uuid doc id (deterministic from sourceId)
+        "key": er.key or None,  # IDMT-#### (business key) - also mirrored in properties below
         "sourceId": er.stable_id,  # stable Jira internal id (e.g. 3364549)
         "source": ER_SOURCE,
         "domain": DOMAIN,
@@ -98,6 +99,7 @@ def build_theme_document(theme: ExtractedTheme, *, parent_er_id: str) -> dict:
     now = _now()
     return {
         "id": doc_id(THEME_KIND, theme.stable_id),  # uuid doc id (deterministic)
+        "key": theme.group_key or None,  # GROUP-#### (business key) - also mirrored in properties below
         "sourceId": theme.stable_id,  # stable Jira internal id
         "source": ER_SOURCE,
         "domain": DOMAIN,
